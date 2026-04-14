@@ -118,44 +118,6 @@ export async function improveWriting(text: string): Promise<string> {
 }
 ```
 
----
 
-## How Suggestions Flow
 
-```
-User selects text
-       │
-       ▼
-Clicks "Improve with AI"
-       │
-       ▼
-improveWriting(selectedText) called
-       │
-       ▼
-AI returns improved text
-       │
-       ▼
-insertContentAt() replaces selection
-  (withSuggestChanges wrapper intercepts)
-       │
-       ▼
-Deletion mark placed on original text
-Insertion mark placed on new text
-       │
-       ▼
-SuggestionBubbleMenu appears → Accept or Reject
-```
-
----
-
-## File Structure
-
-```
-src/
-├── components/
-│   └── TiptapEditor.tsx          # Main editor component + bubble menus
-├── extensions/
-│   └── SuggestionExtension.ts   # Tiptap extension + ProseMirror marks
-└── services/
-    └── aiService.ts              # AI integration (plug in your LLM)
-```
+ 
