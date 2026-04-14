@@ -1,0 +1,6 @@
+{
+  "name": "AI-Powered Suggestion Editor",
+  "description": "A comprehensive text editor built with Tiptap featuring AI-driven writing improvements and Google Docs-style suggestion tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
