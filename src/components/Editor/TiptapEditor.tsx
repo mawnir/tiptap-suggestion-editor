@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
@@ -12,6 +12,7 @@ import {
   enableSuggestChanges,
   isSuggestChangesEnabled,
   toggleSuggestChanges,
+  disableSuggestChanges,
 } from '@handlewithcare/prosemirror-suggest-changes';
 import {
   Bold,
@@ -37,6 +38,7 @@ import { EditorView } from '@tiptap/pm/view';
 
 export const TiptapEditor = () => {
   const [isImproving, setIsImproving] = useState(false);
+  const isAISuggestion = useRef(false);
 
   const editor = useEditor({
     extensions: [
@@ -85,9 +87,13 @@ export const TiptapEditor = () => {
       const improvedText = "This is the improved version of the selected text.";
 
       // Ensure suggest changes is enabled
-      if (!isSuggestChangesEnabled(editor.state)) {
-        enableSuggestChanges(editor.state, editor.view.dispatch);
-      }
+      // if (!isSuggestChangesEnabled(editor.state)) {
+      //   enableSuggestChanges(editor.state, editor.view.dispatch);
+      // }
+
+      enableSuggestChanges(editor.state, editor.view.dispatch);
+
+      isAISuggestion.current = true; // ← set before insert
 
       // Insert content and select it
       editor.chain()
@@ -117,14 +123,14 @@ export const TiptapEditor = () => {
             shouldShow={({ state }) => {
               const { from, to } = state.selection;
               if (from === to) return false;
-
-              // Use getChangesFromState directly (import it from SuggestionExtension file)
               const changes = getChangesFromState(state);
-              return !changes.some((c: any) =>
+              const hasSuggestion = changes.some((c: any) =>
                 (from >= c.from && from <= c.to) ||
                 (to >= c.from && to <= c.to) ||
                 (c.from >= from && c.to <= to)
               );
+              if (!hasSuggestion) isAISuggestion.current = false; // ← reset when no suggestion in selection
+              return !hasSuggestion;
             }}
           >
             <div className="flex items-center gap-1 p-1 bg-white border border-slate-200 rounded-lg shadow-lg">
@@ -163,7 +169,7 @@ export const TiptapEditor = () => {
         )}
 
         {editor && (
-          <SuggestionBubbleMenu editor={editor} />
+          <SuggestionBubbleMenu editor={editor} isAISuggestion={isAISuggestion} />
         )}
 
         <EditorContent editor={editor} />
@@ -180,7 +186,7 @@ export const TiptapEditor = () => {
   );
 };
 
-const SuggestionBubbleMenu = ({ editor }: { editor: any }) => {
+const SuggestionBubbleMenu = ({ editor, isAISuggestion }: { editor: any; isAISuggestion: React.MutableRefObject<boolean>; }) => {
   // Subscribe to editor state updates so the component re-renders on selection change
   const [, forceUpdate] = useState(0);
 
@@ -215,6 +221,8 @@ const SuggestionBubbleMenu = ({ editor }: { editor: any }) => {
       }}
       //tippyOptions={{ zIndex: 50, placement: 'top' }}
       shouldShow={({ state }) => {
+        if (!isAISuggestion.current) return false; // ← gate here
+
         // Read fresh from state every time
         const freshChanges = getChangesFromState(state);
         const sel = state.selection;
@@ -242,6 +250,9 @@ const SuggestionBubbleMenu = ({ editor }: { editor: any }) => {
                 editor.state,
                 editor.view.dispatch
               );
+              isAISuggestion.current = false; // ← reset on accept
+              disableSuggestChanges(editor.state, editor.view.dispatch);
+
               editor.view.focus();
             }}
           >
@@ -258,6 +269,9 @@ const SuggestionBubbleMenu = ({ editor }: { editor: any }) => {
                 editor.state,
                 editor.view.dispatch
               );
+              isAISuggestion.current = false; // ← reset on accept
+              disableSuggestChanges(editor.state, editor.view.dispatch);
+
               editor.view.focus();
             }}
           >

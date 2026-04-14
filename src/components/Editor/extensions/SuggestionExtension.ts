@@ -50,12 +50,12 @@ export const SuggestionExtension = Extension.create({
     return [suggestChanges()];
   },
 
-  onCreate() {
-    const editor = (this as any).editor;
-    if (editor?.state && editor?.view) {
-      enableSuggestChanges(editor.state, editor.view.dispatch);
-    }
-  },
+  // onCreate() {
+  //   const editor = (this as any).editor;
+  //   if (editor?.state && editor?.view) {
+  //     enableSuggestChanges(editor.state, editor.view.dispatch);
+  //   }
+  // },
 
   addStorage() {
     const extension = this;
