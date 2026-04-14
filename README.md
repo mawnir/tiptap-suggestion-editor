@@ -2,6 +2,8 @@
 
 A rich-text editor built with **Tiptap** and **ProseMirror** that integrates AI-powered writing improvements with a tracked-changes workflow — similar to Google Docs' "Suggest edits" mode.
 
+<img src="/screenshot1.png" alt="Screenshot of the AI Suggestion Editor">
+
 ---
 
 ## What It Does
