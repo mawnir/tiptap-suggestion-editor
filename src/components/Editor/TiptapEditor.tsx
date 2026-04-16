@@ -73,6 +73,21 @@ export const TiptapEditor = () => {
     },
   });
 
+  // 1. Create a helper function to simulate the stream
+async function* mockStreamGenerator(fullString) {
+  const words = fullString.split(" ");
+  
+  for (const word of words) {
+      // Simulate network latency (e.g., 100ms)
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Yield an object that mimics the SDK structure
+      yield {
+          text: () => word + " "
+      };
+  }
+}
+
   const handleImproveWriting = useCallback(async () => {
     if (!editor || !editor.state) return;
 
@@ -84,23 +99,32 @@ export const TiptapEditor = () => {
 
     try {
       //const improvedText = await improveWriting(selectedText);
-      const improvedText = "This is the improved version of the selected text.";
+      //const improvedText = "This is the improved version of the selected text.";
 
-      // Ensure suggest changes is enabled
-      // if (!isSuggestChangesEnabled(editor.state)) {
-      //   enableSuggestChanges(editor.state, editor.view.dispatch);
-      // }
+      const improvedText = {
+        stream: mockStreamGenerator("This is the improved version of the selected text.")
+    };
 
       enableSuggestChanges(editor.state, editor.view.dispatch);
 
       isAISuggestion.current = true; // ← set before insert
 
-      // Insert content and select it
-      editor.chain()
-        .focus()
-        .insertContentAt({ from, to }, improvedText)
-        //.setTextSelection({ from, to: from + improvedText.length })
-        .run();
+      // Delete the original selection once, then append streamed chunks.
+      // If we repeatedly replace {from,to}, earlier chunks get marked as deletions (strikethrough).
+      editor.chain().focus().deleteRange({ from, to }).run();
+
+      let pos = from;
+      for await (const chunk of improvedText.stream) {
+        const chunkText = chunk.text();
+        editor
+          .chain()
+          .focus()
+          .insertContentAt({ from: pos, to: pos }, chunkText)
+          .run();
+
+        // Keep inserting after the last inserted content.
+        pos = editor.state.selection.to;
+      }
 
     } catch (error) {
       console.error(error);
