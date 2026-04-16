@@ -109,21 +109,26 @@ async function* mockStreamGenerator(fullString) {
 
       isAISuggestion.current = true; // ← set before insert
 
-      // Delete the original selection once, then append streamed chunks.
-      // If we repeatedly replace {from,to}, earlier chunks get marked as deletions (strikethrough).
+      // Delete the original selection once, then stream inserts after it.
       editor.chain().focus().deleteRange({ from, to }).run();
-
-      let pos = from;
+ 
+      // Use direct transactions so we can clear inherited deletion marks.
+      const deletionMarkType = editor.state.schema.marks.deletion;
+      let pos = to;
       for await (const chunk of improvedText.stream) {
         const chunkText = chunk.text();
-        editor
-          .chain()
-          .focus()
-          .insertContentAt({ from: pos, to: pos }, chunkText)
-          .run();
+        const { state, view } = editor;
+        let tr = state.tr;
+
+        if (deletionMarkType) {
+          tr = tr.removeStoredMark(deletionMarkType);
+        }
+
+        tr = tr.insertText(chunkText, pos, pos);
+        view.dispatch(tr);
 
         // Keep inserting after the last inserted content.
-        pos = editor.state.selection.to;
+        pos += chunkText.length;
       }
 
     } catch (error) {
